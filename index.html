@@ -122,7 +122,6 @@
     </style>
 </head>
 <body>
-    <p>drek</p>
     <!-- Original Single Audio Player Instance -->
     <div class="audio-player" data-audio-player>
         <h2 class="audio-player__title">Audio Track 1</h2>
@@ -171,26 +170,18 @@
             <div class="audio-player_time--item" data-audio-duration>0:00</div>
         </div>
         
-        <!-- Hidden audio sources -->
-        <div class="hidden" data-playlist-sources>
-            [
-                {
-                    "title": "Robbie Will",
-                    "url": "https://pub-2ad04fc816be423785f1709130f256b5.r2.dev/source/29pmG4JEylMcba4pZdEmzBRU6lxJVDliYUrI7R0R.mp3"
-                },
-                {
-                    "title": "Dirty Cash",
-                    "url": "https://pub-2ad04fc816be423785f1709130f256b5.r2.dev/source/tnd805Bhp4KYAptludZGMqWMdf6m2faAd0mANUQr.mp3"
-                },
-                {
-                    "title": "Born Slippy",
-                    "url": "https://pub-2ad04fc816be423785f1709130f256b5.r2.dev/source/aKALEsOOkfHsrArODT09WLXKHTJFmxsftsJRCQZ9.mp3"
-                }
-            ]
+        <!-- Structured playlist container -->
+        <div class="playlist" data-playlist-container>
+            <div class="playlist-item" data-track-url="https://pub-2ad04fc816be423785f1709130f256b5.r2.dev/source/29pmG4JEylMcba4pZdEmzBRU6lxJVDliYUrI7R0R.mp3">
+                Robbie Williams
+            </div>
+            <div class="playlist-item" data-track-url="https://pub-2ad04fc816be423785f1709130f256b5.r2.dev/source/tnd805Bhp4KYAptludZGMqWMdf6m2faAd0mANUQr.mp3">
+                Dirty Cash
+            </div>
+            <div class="playlist-item" data-track-url="https://pub-2ad04fc816be423785f1709130f256b5.r2.dev/source/aKALEsOOkfHsrArODT09WLXKHTJFmxsftsJRCQZ9.mp3">
+                Born Slippy
+            </div>
         </div>
-        
-        <!-- Playlist container -->
-        <div class="playlist" data-playlist-container></div>
     </div>
 
     <script>
@@ -435,107 +426,99 @@ class AudioPlayer {
 }
         
 class PlaylistAudioPlayer extends AudioPlayer {
-            constructor(container) {
-                super(container);
-                
-                // Stop and destroy the initial Howl instance since we'll create our own
-                if (this.sound) {
-                    this.sound.unload();
-                }
-                
-                // Additional controls for playlist
-                this.prevButton = container.querySelector('[data-control="prev"]');
-                this.nextButton = container.querySelector('[data-control="next"]');
-                this.playlistContainer = container.querySelector('[data-playlist-container]');
-                this.playlistTitle = container.querySelector('[data-playlist-title]');
-                
-                // Get playlist data
-                const playlistData = JSON.parse(
-                    container.querySelector('[data-playlist-sources]').textContent
-                );
-                
-                this.playlist = playlistData;
-                this.currentTrackIndex = 0;
-                
-                this.initializePlaylist();
-                this.bindPlaylistEvents();
-            }
-
-            initializePlaylist() {
-                // Create playlist items
-                this.playlist.forEach((track, index) => {
-                    const item = document.createElement('div');
-                    item.className = 'playlist-item';
-                    item.textContent = track.title;
-                    item.setAttribute('data-track-index', index);
-                    
-                    if (index === 0) {
-                        item.classList.add('active');
-                    }
-                    
-                    this.playlistContainer.appendChild(item);
-                });
-                
-                // Set initial track
-                this.setTrack(0);
-            }
-
-            setTrack(index) {
-                // Update current track index
-                this.currentTrackIndex = index;
-                
-                // Update playlist UI
-                this.playlistContainer.querySelectorAll('.playlist-item').forEach((item, i) => {
-                    item.classList.toggle('active', i === index);
-                });
-                
-                // Update player
-                const track = this.playlist[index];
-                this.playlistTitle.textContent = track.title;
-                
-                // Stop current track if playing
-                if (this.sound) {
-                    this.sound.stop();
-                }
-                
-                // Initialize new track
-                this.audioSource = track.url;
-                this.initializeHowl();
-            }
-
-            bindPlaylistEvents() {
-                // Previous track
-                this.prevButton.addEventListener('click', () => {
-                    const newIndex = (this.currentTrackIndex - 1 + this.playlist.length) % this.playlist.length;
-                    this.setTrack(newIndex);
-                    this.sound.play();
-                });
-                
-                // Next track
-                this.nextButton.addEventListener('click', () => {
-                    const newIndex = (this.currentTrackIndex + 1) % this.playlist.length;
-                    this.setTrack(newIndex);
-                    this.sound.play();
-                });
-                
-                // Playlist item click
-                this.playlistContainer.addEventListener('click', (e) => {
-                    const item = e.target.closest('.playlist-item');
-                    if (item) {
-                        const index = parseInt(item.getAttribute('data-track-index'));
-                        this.setTrack(index);
-                        this.sound.play();
-                    }
-                });
-                
-                // Auto-play next track when current track ends
-                this.sound.on('end', () => {
-                    const newIndex = (this.currentTrackIndex + 1) % this.playlist.length;
-                    this.setTrack(newIndex);
-                    this.sound.play();
-                });
-            }
+    constructor(container) {
+        super(container);
+        
+        // Stop and destroy the initial Howl instance since we'll create our own
+        if (this.sound) {
+            this.sound.unload();
         }
+        
+        // Additional controls for playlist
+        this.prevButton = container.querySelector('[data-control="prev"]');
+        this.nextButton = container.querySelector('[data-control="next"]');
+        this.playlistContainer = container.querySelector('[data-playlist-container]');
+        this.playlistTitle = container.querySelector('[data-playlist-title]');
+        
+        // Get playlist items
+        this.playlistItems = Array.from(this.playlistContainer.querySelectorAll('.playlist-item'));
+        this.currentTrackIndex = 0;
+        
+        this.initializePlaylist();
+        this.bindPlaylistEvents();
+    }
+
+    initializePlaylist() {
+        // Set active class on first item
+        if (this.playlistItems.length > 0) {
+            this.playlistItems[0].classList.add('active');
+            // Set initial track
+            this.setTrack(0);
+        }
+    }
+
+    setTrack(index) {
+        // Update current track index
+        this.currentTrackIndex = index;
+        
+        // Update playlist UI
+        this.playlistItems.forEach((item, i) => {
+            item.classList.toggle('active', i === index);
+        });
+        
+        // Get current track item
+        const currentItem = this.playlistItems[index];
+        
+        // Update player title
+        this.playlistTitle.textContent = currentItem.textContent.trim();
+        
+        // Stop current track if playing
+        if (this.sound) {
+            this.sound.stop();
+        }
+        
+        // Initialize new track with URL from data attribute
+        this.audioSource = currentItem.getAttribute('data-track-url');
+        this.initializeHowl();
+    }
+
+    bindPlaylistEvents() {
+        // Previous track
+        this.prevButton.addEventListener('click', () => {
+            const newIndex = (this.currentTrackIndex - 1 + this.playlistItems.length) % this.playlistItems.length;
+            this.setTrack(newIndex);
+            this.sound.play();
+        });
+        
+        // Next track
+        this.nextButton.addEventListener('click', () => {
+            const newIndex = (this.currentTrackIndex + 1) % this.playlistItems.length;
+            this.setTrack(newIndex);
+            this.sound.play();
+        });
+        
+        // Playlist item click
+        this.playlistContainer.addEventListener('click', (e) => {
+            const item = e.target.closest('.playlist-item');
+            if (item) {
+                const index = this.playlistItems.indexOf(item);
+                if (index !== -1) {
+                    this.setTrack(index);
+                    this.sound.play();
+                }
+            }
+        });
+        
+        // Auto-play next track when current track ends
+        if (this.sound) {
+            this.sound.on('end', () => {
+                const newIndex = (this.currentTrackIndex + 1) % this.playlistItems.length;
+                this.setTrack(newIndex);
+                this.sound.play();
+            });
+        }
+    }
+}
 
         // Initialize all audio players when Howler is loaded
         loadHowler().then(() => {
