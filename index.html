@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Multi-Instance Audio Player with Playlist</title>
+    <style>
+        /* Existing styles */
+        .audio-player {
+            max-width: 300px;
+            margin: 20px auto;
+            padding: 15px;
+            border-radius: 8px;
+            background: #f5f5f5;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .audio-player__title {
+            margin: 0 0 10px;
+            font-size: 1rem;
+            color: #333;
+            text-align: center;
+        }
+
+        .audio-player__controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 10px 0;
+        }
+
+        .audio-player__button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            background: #4a90e2;
+            color: white;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .audio-player__button:hover {
+            background: #357abd;
+        }
+
+        .audio-player__button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .audio-player__progress {
+            width: 100%;
+            height: 20px;
+            background: #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .audio-player__progress-bar {
+            height: 100%;
+            background: #4a90e2;
+            width: 0;
+            transition: width 0.1s linear;
+        }
+
+        .audio-player__progress-handle {
+            position: absolute;
+            top: 0;
+            width: 4px;
+            height: 100%;
+            background: #2c3e50;
+            cursor: ew-resize;
+            display: none;
+        }
+
+        .audio-player__progress:hover .audio-player__progress-handle {
+            display: block;
+        }
+
+        /* New styles for playlist player */
+        .playlist-player {
+            max-width: 400px;
+        }
+
+        .playlist {
+            margin-top: 15px;
+            border-top: 1px solid #ddd;
+            padding-top: 15px;
+        }
+
+        .playlist-item {
+            padding: 8px;
+            margin: 4px 0;
+            background: #fff;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .playlist-item:hover {
+            background: #e9f0f7;
+        }
+
+        .playlist-item.active {
+            background: #4a90e2;
+            color: white;
+        }
+
+        .audio-player_time {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <p>drek</p>
+    <!-- Original Single Audio Player Instance -->
+    <div class="audio-player" data-audio-player>
+        <h2 class="audio-player__title">Audio Track 1</h2>
+        <div class="audio-player__progress" data-control="progress">
+            <div class="audio-player__progress-bar" data-progress="bar"></div>
+            <div class="audio-player__progress-handle" data-progress="handle"></div>
+        </div>
+        <div class="audio-player__volume" data-control="volume">
+            <div class="audio-player__volume-bar" data-volume="bar"></div>
+            <div class="audio-player__volume-handle" data-volume="handle"></div>
+        </div>
+        <div class="audio-player__controls">
+            <button class="audio-player__button" data-control="play">Play</button>
+            <button class="audio-player__button hidden" data-control="pause">Pause</button>
+            <button class="audio-player__button" data-control="mute">Mute</button>
+            <button class="audio-player__button hidden" data-control="unmute">Unmute</button>
+        </div>
+        <div class="audio-player_time">
+            <div class="audio-player_time--item" data-audio-current-time>0:00</div>
+            <div class="audio-player_time--item" data-audio-duration>0:00</div>
+        </div>
+        <div class="hidden" data-audio-source>https://pub-2ad04fc816be423785f1709130f256b5.r2.dev/source/aKALEsOOkfHsrArODT09WLXKHTJFmxsftsJRCQZ9.mp3</div>
+    </div>
+
+    <!-- New Playlist Audio Player Instance -->
+    <div class="audio-player playlist-player" data-audio-player-multiple>
+        <h2 class="audio-player__title" data-playlist-title>My Playlist</h2>
+        <div class="audio-player__progress" data-control="progress">
+            <div class="audio-player__progress-bar" data-progress="bar"></div>
+            <div class="audio-player__progress-handle" data-progress="handle"></div>
+        </div>
+        <div class="audio-player__volume" data-control="volume">
+            <div class="audio-player__volume-bar" data-volume="bar"></div>
+            <div class="audio-player__volume-handle" data-volume="handle"></div>
+        </div>
+        <div class="audio-player__controls">
+            <button class="audio-player__button" data-control="prev">Previous</button>
+            <button class="audio-player__button" data-control="play">Play</button>
+            <button class="audio-player__button hidden" data-control="pause">Pause</button>
+            <button class="audio-player__button" data-control="next">Next</button>
+            <button class="audio-player__button" data-control="mute">Mute</button>
+            <button class="audio-player__button hidden" data-control="unmute">Unmute</button>
+        </div>
+        <div class="audio-player_time">
+            <div class="audio-player_time--item" data-audio-current-time>0:00</div>
+            <div class="audio-player_time--item" data-audio-duration>0:00</div>
+        </div>
+        
+        <!-- Hidden audio sources -->
+        <div class="hidden" data-playlist-sources>
+            [
+                {
+                    "title": "Robbie Will",
+                    "url": "https://pub-2ad04fc816be423785f1709130f256b5.r2.dev/source/29pmG4JEylMcba4pZdEmzBRU6lxJVDliYUrI7R0R.mp3"
+                },
+                {
+                    "title": "Dirty Cash",
+                    "url": "https://pub-2ad04fc816be423785f1709130f256b5.r2.dev/source/tnd805Bhp4KYAptludZGMqWMdf6m2faAd0mANUQr.mp3"
+                },
+                {
+                    "title": "Born Slippy",
+                    "url": "https://pub-2ad04fc816be423785f1709130f256b5.r2.dev/source/aKALEsOOkfHsrArODT09WLXKHTJFmxsftsJRCQZ9.mp3"
+                }
+            ]
+        </div>
+        
+        <!-- Playlist container -->
+        <div class="playlist" data-playlist-container></div>
+    </div>
+
+    <script>
+        // Function to dynamically load Howler.js
+function loadHowler() {
+    return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = "https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.min.js";
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+    });
+}
+class AudioPlayer {
+    constructor(container) {
+        this.container = container;
+        
+        // Initialize controls
+        this.playButton = container.querySelector('[data-control="play"]');
+        this.pauseButton = container.querySelector('[data-control="pause"]');
+        this.muteButton = container.querySelector('[data-control="mute"]');
+        this.unmuteButton = container.querySelector('[data-control="unmute"]');
+        
+        // Progress controls
+        this.progressContainer = container.querySelector('[data-control="progress"]');
+        this.progressBar = container.querySelector('[data-progress="bar"]');
+        this.progressHandle = container.querySelector('[data-progress="handle"]');
+        
+        // Volume controls
+        this.volumeContainer = container.querySelector('[data-control="volume"]');
+        this.volumeBar = container.querySelector('[data-volume="bar"]');
+        this.volumeHandle = container.querySelector('[data-volume="handle"]');
+        
+        // Time display elements
+        this.currentTimeDisplay = container.querySelector('[data-audio-current-time]');
+        this.durationDisplay = container.querySelector('[data-audio-duration]');
+        
+        // Audio source - handle both single source and playlist cases
+        const sourceElement = container.querySelector('[data-audio-source]');
+        this.audioSource = sourceElement ? sourceElement.textContent : null;
+        
+        // State variables
+        this.isDragging = false;
+        this.isDraggingVolume = false;
+        this.lastVolume = 1;
+        
+        this.initializeHowl();
+        this.bindEvents();
+    }
+
+    formatTime(seconds) {
+        seconds = Math.floor(seconds);
+        const minutes = Math.floor(seconds / 60);
+        seconds = seconds % 60;
+        return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    }
+
+    initializeHowl() {
+        // Only initialize if we have a source
+        if (!this.audioSource) return;
+        this.sound = new Howl({
+            src: [this.audioSource],
+            html5: true,
+            volume: 1,
+            onload: () => {
+                this.enableControls();
+                this.updateVolumeBar(1);
+                
+                // Set initial duration
+                const duration = this.sound.duration();
+                if (this.durationDisplay) {
+                    this.durationDisplay.textContent = this.formatTime(duration);
+                }
+            }
+        });
+    }
+
+    enableControls() {
+        this.playButton.disabled = false;
+        this.pauseButton.disabled = false;
+        this.muteButton.disabled = false;
+        this.unmuteButton.disabled = false;
+    }
+
+    updateVolume(percentage) {
+        this.sound.volume(percentage);
+        this.updateVolumeBar(percentage);
+        this.lastVolume = percentage;
+        
+        // Update mute/unmute button states
+        if (percentage === 0) {
+            this.muteButton.classList.add('hidden');
+            this.unmuteButton.classList.remove('hidden');
+        } else {
+            this.unmuteButton.classList.add('hidden');
+            this.muteButton.classList.remove('hidden');
+        }
+    }
+
+    updateVolumeBar(percentage) {
+        this.volumeBar.style.width = `${percentage * 100}%`;
+        this.volumeHandle.style.left = `${percentage * 100}%`;
+    }
+
+    bindEvents() {
+        // Play control
+        this.playButton.addEventListener('click', () => {
+            this.sound.play();
+            this.playButton.classList.add('hidden');
+            this.pauseButton.classList.remove('hidden');
+        });
+
+        // Pause control
+        this.pauseButton.addEventListener('click', () => {
+            this.sound.pause();
+            this.pauseButton.classList.add('hidden');
+            this.playButton.classList.remove('hidden');
+        });
+
+        // Mute control
+        this.muteButton.addEventListener('click', () => {
+            this.lastVolume = this.sound.volume();
+            this.sound.volume(0);
+            this.updateVolumeBar(0);
+            this.muteButton.classList.add('hidden');
+            this.unmuteButton.classList.remove('hidden');
+        });
+
+        // Unmute control
+        this.unmuteButton.addEventListener('click', () => {
+            this.sound.volume(this.lastVolume);
+            this.updateVolumeBar(this.lastVolume);
+            this.unmuteButton.classList.add('hidden');
+            this.muteButton.classList.remove('hidden');
+        });
+
+        // Volume control click
+        this.volumeContainer.addEventListener('click', (e) => {
+            if (!this.isDraggingVolume) {
+                const rect = this.volumeContainer.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const percentage = Math.max(0, Math.min(1, x / rect.width));
+                this.updateVolume(percentage);
+            }
+        });
+
+        // Volume control drag
+        this.volumeHandle.addEventListener('mousedown', () => {
+            this.isDraggingVolume = true;
+        });
+
+        // Progress bar click
+        this.progressContainer.addEventListener('click', (e) => {
+            if (!this.isDragging) {
+                const rect = this.progressContainer.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const percentage = x / rect.width;
+                const seekTime = percentage * this.sound.duration();
+                this.sound.seek(seekTime);
+                if (this.currentTimeDisplay) {
+                    this.currentTimeDisplay.textContent = this.formatTime(seekTime);
+                }
+            }
+        });
+
+        // Progress bar drag
+        this.progressHandle.addEventListener('mousedown', () => {
+            this.isDragging = true;
+        });
+
+        // Global mouse move handler
+        document.addEventListener('mousemove', (e) => {
+            // Handle volume dragging
+            if (this.isDraggingVolume) {
+                const rect = this.volumeContainer.getBoundingClientRect();
+                let x = e.clientX - rect.left;
+                const percentage = Math.max(0, Math.min(1, x / rect.width));
+                this.updateVolumeBar(percentage);
+            }
+            
+            // Handle progress dragging
+            if (this.isDragging) {
+                const rect = this.progressContainer.getBoundingClientRect();
+                let x = e.clientX - rect.left;
+                x = Math.max(0, Math.min(x, rect.width));
+                const percentage = x / rect.width;
+                this.progressBar.style.width = `${percentage * 100}%`;
+                this.progressHandle.style.left = `${percentage * 100}%`;
+                
+                // Update time display while dragging
+                const seekTime = percentage * this.sound.duration();
+                if (this.currentTimeDisplay) {
+                    this.currentTimeDisplay.textContent = this.formatTime(seekTime);
+                }
+            }
+        });
+
+        // Global mouse up handler
+        document.addEventListener('mouseup', () => {
+            // Handle volume drag end
+            if (this.isDraggingVolume) {
+                const percentage = parseFloat(this.volumeBar.style.width) / 100;
+                this.updateVolume(percentage);
+                this.isDraggingVolume = false;
+            }
+            
+            // Handle progress drag end
+            if (this.isDragging) {
+                const percentage = parseFloat(this.progressBar.style.width) / 100;
+                const seekTime = percentage * this.sound.duration();
+                this.sound.seek(seekTime);
+                this.isDragging = false;
+            }
+        });
+
+        // Update progress during playback
+        if (this.sound) {
+            this.sound.on('play', () => {
+                this.updateProgress();
+            });
+        }
+        
+    }
+
+    updateProgress() {
+        if (this.sound.playing() && !this.isDragging) {
+            const currentTime = this.sound.seek();
+            const duration = this.sound.duration();
+            const progress = currentTime / duration;
+            
+            this.progressBar.style.width = `${progress * 100}%`;
+            this.progressHandle.style.left = `${progress * 100}%`;
+            
+            // Update current time display
+            if (this.currentTimeDisplay) {
+                this.currentTimeDisplay.textContent = this.formatTime(currentTime);
+            }
+            
+            requestAnimationFrame(() => this.updateProgress());
+        }
+    }
+}
+        
+class PlaylistAudioPlayer extends AudioPlayer {
+            constructor(container) {
+                super(container);
+                
+                // Stop and destroy the initial Howl instance since we'll create our own
+                if (this.sound) {
+                    this.sound.unload();
+                }
+                
+                // Additional controls for playlist
+                this.prevButton = container.querySelector('[data-control="prev"]');
+                this.nextButton = container.querySelector('[data-control="next"]');
+                this.playlistContainer = container.querySelector('[data-playlist-container]');
+                this.playlistTitle = container.querySelector('[data-playlist-title]');
+                
+                // Get playlist data
+                const playlistData = JSON.parse(
+                    container.querySelector('[data-playlist-sources]').textContent
+                );
+                
+                this.playlist = playlistData;
+                this.currentTrackIndex = 0;
+                
+                this.initializePlaylist();
+                this.bindPlaylistEvents();
+            }
+
+            initializePlaylist() {
+                // Create playlist items
+                this.playlist.forEach((track, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'playlist-item';
+                    item.textContent = track.title;
+                    item.setAttribute('data-track-index', index);
+                    
+                    if (index === 0) {
+                        item.classList.add('active');
+                    }
+                    
+                    this.playlistContainer.appendChild(item);
+                });
+                
+                // Set initial track
+                this.setTrack(0);
+            }
+
+            setTrack(index) {
+                // Update current track index
+                this.currentTrackIndex = index;
+                
+                // Update playlist UI
+                this.playlistContainer.querySelectorAll('.playlist-item').forEach((item, i) => {
+                    item.classList.toggle('active', i === index);
+                });
+                
+                // Update player
+                const track = this.playlist[index];
+                this.playlistTitle.textContent = track.title;
+                
+                // Stop current track if playing
+                if (this.sound) {
+                    this.sound.stop();
+                }
+                
+                // Initialize new track
+                this.audioSource = track.url;
+                this.initializeHowl();
+            }
+
+            bindPlaylistEvents() {
+                // Previous track
+                this.prevButton.addEventListener('click', () => {
+                    const newIndex = (this.currentTrackIndex - 1 + this.playlist.length) % this.playlist.length;
+                    this.setTrack(newIndex);
+                    this.sound.play();
+                });
+                
+                // Next track
+                this.nextButton.addEventListener('click', () => {
+                    const newIndex = (this.currentTrackIndex + 1) % this.playlist.length;
+                    this.setTrack(newIndex);
+                    this.sound.play();
+                });
+                
+                // Playlist item click
+                this.playlistContainer.addEventListener('click', (e) => {
+                    const item = e.target.closest('.playlist-item');
+                    if (item) {
+                        const index = parseInt(item.getAttribute('data-track-index'));
+                        this.setTrack(index);
+                        this.sound.play();
+                    }
+                });
+                
+                // Auto-play next track when current track ends
+                this.sound.on('end', () => {
+                    const newIndex = (this.currentTrackIndex + 1) % this.playlist.length;
+                    this.setTrack(newIndex);
+                    this.sound.play();
+                });
+            }
+        }
+
+        // Initialize all audio players when Howler is loaded
+        loadHowler().then(() => {
+            // Initialize single audio players
+            document.querySelectorAll('[data-audio-player]').forEach(container => {
+                new AudioPlayer(container);
+            });
+            
+            // Initialize playlist audio players
+            document.querySelectorAll('[data-audio-player-multiple]').forEach(container => {
+                new PlaylistAudioPlayer(container);
+            });
+        }).catch(error => {
+            console.error('Error loading Howler.js:', error);
+        });
+    </script>
+</body>
+</html>
