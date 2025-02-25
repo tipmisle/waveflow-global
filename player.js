@@ -343,7 +343,9 @@ class AudioPlayer {
                 const rect = this.volumeContainer.getBoundingClientRect();
                 let x = clientX - rect.left;
                 const percentage = Math.max(0, Math.min(1, x / rect.width));
-                this.updateVolumeBar(percentage);
+                
+                // Update volume immediately, not just visual indicator
+                this.updateVolume(percentage);
             }
             
             // Handle progress dragging
@@ -390,12 +392,9 @@ class AudioPlayer {
                 this.isDragging = false;
             }
             
-            // Handle volume drag end
-            if (this.isDraggingVolume) {
-                const percentage = parseFloat(this.volumeBar.style.width) / 100 || 0;
-                this.updateVolume(percentage);
-                this.isDraggingVolume = false;
-            }
+            // Just reset the dragging state for volume
+            // We don't need to update the volume again since we did it in real-time
+            this.isDraggingVolume = false;
         };
         
         document.addEventListener('mouseup', handleEnd);
