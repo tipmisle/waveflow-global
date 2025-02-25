@@ -481,8 +481,22 @@ class PlaylistAudioPlayer extends AudioPlayer {
         
         // Initialize new track with URL from data attribute
         this.audioSource = currentItem.getAttribute('data-track-url');
+
+        // Store current volume before creating new Howl instance
+        const currentVolume = this.sound ? this.sound.volume() : (this.lastVolume || 1);
+
+        // Initialize the new Howl instance
         this.initializeHowl();
-        
+
+        // After initialization, set the volume to match the previous volume
+        if (this.sound) {
+            // Apply the volume once the sound is loaded
+            this.sound.once('load', () => {
+                this.sound.volume(currentVolume);
+                this.updateVolumeBar(currentVolume);
+            });
+        }
+
         // If autoplay is true or was previously playing, play the new track
         if (autoplay || wasPlaying) {
             // We need to wait for the track to load before playing
@@ -545,6 +559,10 @@ class PlaylistAudioPlayer extends AudioPlayer {
     
     // Override initializeHowl to add the end event binding
     initializeHowl() {
+        // Store volume before creating new instance
+        const currentVolume = this.sound ? this.sound.volume() : (this.lastVolume || 1);
+        
+        // Call parent's initializeHowl
         super.initializeHowl();
         
         // Add end event handler for auto-advancing playlist
@@ -552,6 +570,22 @@ class PlaylistAudioPlayer extends AudioPlayer {
             this.sound.on('end', () => {
                 const newIndex = (this.currentTrackIndex + 1) % this.playlistItems.length;
                 this.setTrack(newIndex, true); // Auto-play next track
+            });
+            
+            // Apply volume with timeouts to ensure it works
+            this.sound.once('load', () => {
+                // Set volume immediately
+                this.sound.volume(currentVolume);
+                
+                // Update UI immediately
+                this.updateVolumeBar(currentVolume);
+                
+                // And also with a small delay to ensure UI is updated
+                setTimeout(() => {
+                    this.sound.volume(currentVolume);
+                    this.updateVolumeBar(currentVolume);
+                    this.lastVolume = currentVolume; // Also update lastVolume for consistency
+                }, 10);
             });
         }
     }
