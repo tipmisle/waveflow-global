@@ -33,8 +33,8 @@ class AudioPlayer {
         this.durationDisplay = container.querySelector('[data-audio-duration]');
         
         // Audio source - handle both single source and playlist cases
-        const sourceElement = container.querySelector('[data-audio-source]');
-        this.audioSource = sourceElement ? sourceElement.textContent : null;
+        const sourceElement = container.querySelector('[data-track-url]');
+        this.audioSource = sourceElement ? sourceElement.getAttribute('data-track-url') : null;
         
         // State variables
         this.isDragging = false;
