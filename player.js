@@ -1,4 +1,3 @@
-// Function to dynamically load Howler.js
 function loadHowler() {
     return new Promise((resolve, reject) => {
         const script = document.createElement('script');
@@ -32,8 +31,9 @@ class AudioPlayer {
         this.currentTimeDisplay = container.querySelector('[data-audio-current-time]');
         this.durationDisplay = container.querySelector('[data-audio-duration]');
         
-        // Audio source
-        this.audioSource = container.querySelector('[data-audio-source]').textContent;
+        // Audio source - handle both single source and playlist cases
+        const sourceElement = container.querySelector('[data-audio-source]');
+        this.audioSource = sourceElement ? sourceElement.textContent : null;
         
         // State variables
         this.isDragging = false;
@@ -52,6 +52,8 @@ class AudioPlayer {
     }
 
     initializeHowl() {
+        // Only initialize if we have a source
+        if (!this.audioSource) return;
         this.sound = new Howl({
             src: [this.audioSource],
             html5: true,
@@ -208,9 +210,12 @@ class AudioPlayer {
         });
 
         // Update progress during playback
-        this.sound.on('play', () => {
-            this.updateProgress();
-        });
+        if (this.sound) {
+            this.sound.on('play', () => {
+                this.updateProgress();
+            });
+        }
+        
     }
 
     updateProgress() {
@@ -231,12 +236,113 @@ class AudioPlayer {
         }
     }
 }
+        
+class PlaylistAudioPlayer extends AudioPlayer {
+    constructor(container) {
+        super(container);
+        
+        // Stop and destroy the initial Howl instance since we'll create our own
+        if (this.sound) {
+            this.sound.unload();
+        }
+        
+        // Additional controls for playlist
+        this.prevButton = container.querySelector('[data-control="prev"]');
+        this.nextButton = container.querySelector('[data-control="next"]');
+        this.playlistContainer = container.querySelector('[data-playlist-container]');
+        this.playlistTitle = container.querySelector('[data-playlist-title]');
+        
+        // Get playlist items
+        this.playlistItems = Array.from(this.playlistContainer.querySelectorAll('.playlist-item'));
+        this.currentTrackIndex = 0;
+        
+        this.initializePlaylist();
+        this.bindPlaylistEvents();
+    }
 
-// Initialize all audio players when Howler is loaded
-loadHowler().then(() => {
-    document.querySelectorAll('[data-audio-player]').forEach(container => {
-        new AudioPlayer(container);
-    });
-}).catch(error => {
-    console.error('Error loading Howler.js:', error);
-});
+    initializePlaylist() {
+        // Set active class on first item
+        if (this.playlistItems.length > 0) {
+            this.playlistItems[0].classList.add('active');
+            // Set initial track
+            this.setTrack(0);
+        }
+    }
+
+    setTrack(index) {
+        // Update current track index
+        this.currentTrackIndex = index;
+        
+        // Update playlist UI
+        this.playlistItems.forEach((item, i) => {
+            item.classList.toggle('active', i === index);
+        });
+        
+        // Get current track item
+        const currentItem = this.playlistItems[index];
+        
+        // Update player title
+        this.playlistTitle.textContent = currentItem.textContent.trim();
+        
+        // Stop current track if playing
+        if (this.sound) {
+            this.sound.stop();
+        }
+        
+        // Initialize new track with URL from data attribute
+        this.audioSource = currentItem.getAttribute('data-track-url');
+        this.initializeHowl();
+    }
+
+    bindPlaylistEvents() {
+        // Previous track
+        this.prevButton.addEventListener('click', () => {
+            const newIndex = (this.currentTrackIndex - 1 + this.playlistItems.length) % this.playlistItems.length;
+            this.setTrack(newIndex);
+            this.sound.play();
+        });
+        
+        // Next track
+        this.nextButton.addEventListener('click', () => {
+            const newIndex = (this.currentTrackIndex + 1) % this.playlistItems.length;
+            this.setTrack(newIndex);
+            this.sound.play();
+        });
+        
+        // Playlist item click
+        this.playlistContainer.addEventListener('click', (e) => {
+            const item = e.target.closest('.playlist-item');
+            if (item) {
+                const index = this.playlistItems.indexOf(item);
+                if (index !== -1) {
+                    this.setTrack(index);
+                    this.sound.play();
+                }
+            }
+        });
+        
+        // Auto-play next track when current track ends
+        if (this.sound) {
+            this.sound.on('end', () => {
+                const newIndex = (this.currentTrackIndex + 1) % this.playlistItems.length;
+                this.setTrack(newIndex);
+                this.sound.play();
+            });
+        }
+    }
+}
+
+        // Initialize all audio players when Howler is loaded
+        loadHowler().then(() => {
+            // Initialize single audio players
+            document.querySelectorAll('[data-audio-player]').forEach(container => {
+                new AudioPlayer(container);
+            });
+            
+            // Initialize playlist audio players
+            document.querySelectorAll('[data-audio-player-multiple]').forEach(container => {
+                new PlaylistAudioPlayer(container);
+            });
+        }).catch(error => {
+            console.error('Error loading Howler.js:', error);
+        });
